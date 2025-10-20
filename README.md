@@ -149,11 +149,11 @@ SELECT category_id,  COUNT(*) as product_count, AVG(price) as avg_price
 FROM products
 GROUP BY category_id;
 ```
-1|4|355.74
-2|2|42.245
-3|2|38.9905
-4|2|38.99
-5|2|57.49
+1|4|355.74  
+2|2|42.245  
+3|2|38.9905  
+4|2|38.99  
+5|2|57.49  
 
 Some might already noticed, this list is neat, but why it didn't explicitly tell us what categories we have?
 Good question, if we look back at our table "products" we can see that the category info is stored with category_id, instead of the real category, all the info about category is stored in another table: "categories".
@@ -171,11 +171,11 @@ GROUP BY categories.category_name; -- Split products into separate groups by cat
 ```
 This will provide a detailed table:
 
-Books|2|42.245
-Clothing|2|38.9905
-Electronics|4|355.74
-Home & Garden|2|38.99
-Sports|2|57.49
+Books|2|42.245  
+Clothing|2|38.9905  
+Electronics|4|355.74  
+Home & Garden|2|38.99  
+Sports|2|57.49  
 
 **Note:**  
 JOIN creates a **temporary result set in memory** - it does NOT:  
