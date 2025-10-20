@@ -120,11 +120,11 @@ WHERE price > 30 -- We only want to see the products if they have value ove $30
 ORDER BY price DESC -- Add order to our list. DESC: descending, which means the greatest value will stay on top.
 LIMIT 5; -- Only show the top 5
 ```
-Laptop Pro 15|1299.99|25
-Running Shoes|89.99|75
-Bluetooth Headphones|79.99|65
-Denim Jeans|59.99|120
-Python Programming Guide|45.5|80
+Laptop Pro 15|1299.99|25  
+Running Shoes|89.99|75  
+Bluetooth Headphones|79.99|65  
+Denim Jeans|59.99|120  
+Python Programming Guide|45.5|80  
 
 This is what we get out of that!
 
