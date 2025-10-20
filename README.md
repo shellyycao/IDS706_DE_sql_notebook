@@ -128,6 +128,25 @@ Python Programming Guide|45.5|80
 
 This is what we get out of that!
 
+We can also apply multiple aggregate functions to exam our table:
+
+```sql
+SELECT 
+    COUNT(*) as total_orders,
+    AVG(total_amount) as avg_order_value,
+    MAX(total_amount) as largest_order,
+    MIN(total_amount) as smallest_order,
+    SUM(total_amount) as total_revenue
+FROM orders;
+```
+10|338.583|1342.97|42.99|3385.83 
+
+Total Orders: 10  
+Average Order Value: 338.583  
+Largest Order: 1342.97  
+Smallest Order: 42.99  
+Total Revenue: 3385.83  
+
 ————————————  
 
 **A powerful tool: Group By**
@@ -185,11 +204,206 @@ JOIN creates a **temporary result set in memory** - it does NOT:
 And it will disappear after the query is finished.
 
 
+There are different kinds of JOIN that serve different functions:
+
+**INNER JOIN**
+Returns only rows that have matching values in BOTH tables.
+```sql
+-- Show orders with customer names (only if customer exists)
+SELECT o.order_id, c.first_name, o.total_amount
+FROM orders o
+INNER JOIN customers c ON o.customer_id = c.customer_id
+LIMIT 3;
+```
+1|John|1342.97  
+2|Emma|84.48  
+3|Michael|89.99  
+4|John|45.5  
+5|Sarah|144.97  
 
 
+**LEFT JOIN**
+Returns ALL rows from the left table, plus matches from the right table (NULL if no match).
+```sql
+-- Show all products, even those never ordered
+SELECT p.product_name, COUNT(oi.order_item_id) as times_ordered
+FROM products p
+LEFT JOIN order_items oi ON p.product_id = oi.product_id
+GROUP BY p.product_name
+LIMIT 5;
+```
+Bluetooth Headphones|1  
+Cotton T-Shirt|1  
+Denim Jeans|1  
+Garden Hose|0  
+LED Desk Lamp|1
 
 
+**RIGHT JOIN**
+Returns ALL rows from the right table, plus matches from the left table (NULL if no match).
+```sql
+-- Show all customers, even those who never ordered
+SELECT c.first_name, COUNT(o.order_id) as order_count
+FROM orders o
+RIGHT JOIN customers c ON o.customer_id = c.customer_id
+GROUP BY c.first_name
+LIMIT 5;
+```
+David|1  
+Emma|2  
+James|1  
+John|2  
+Lisa|1  
+
+**CROSS JOIN**
+Returns every possible combination of rows from both tables.
+```sql
+-- Generate all possible customer-product pairs
+SELECT c.first_name, p.product_name
+FROM customers c
+CROSS JOIN products p
+ORDER BY RANDOM() -- This give us random 10 results!
+LIMIT 10;
+
+```
+David|Cotton T-Shirt  
+Lisa|Python Programming Guide  
+John|USB-C Cable  
+John|Denim Jeans  
+Sarah|Cotton T-Shirt  
+Maria|Bluetooth Headphones  
+David|Denim Jeans  
+James|Wireless Mouse  
+Lisa|Running Shoes  
+David|LED Desk Lamp  
 
 
+3. **More advanced query**
+
+When data is big enough, more advanced query need to be used. Here is some simple demo with my small, simple data:
+
+We first ask questions!
+
+————————————————————————————————————————————
+
+- How many orders are small (<$100), medium ($100–$500), or large (>$500)?
+
+```sql
+SELECT
+  CASE -- CASE groups values, just like "IF" in python
+    WHEN total_amount < 100 THEN 'small'
+    WHEN total_amount BETWEEN 100 AND 500 THEN 'medium'
+    ELSE 'large'
+  END AS order_size,
+  COUNT(*) AS num_orders
+FROM orders
+GROUP BY order_size
+ORDER BY num_orders DESC;
+```
+small|5  
+medium|3  
+large|2  
+
+A: 5 orders are small, 3 orders are medium, 2 orders are large.  
+
+————————————————————————————————————————————
+
+- What is each customer’s most recent order?
+
+```sql
+SELECT customer_id, order_id, order_date, total_amount
+FROM (
+  SELECT
+    o.*,
+    ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.order_date DESC) AS rn
+  FROM orders o
+)
+WHERE rn = 1
+ORDER BY customer_id;
+```
+1|4|2024-06-05|45.5  
+2|8|2024-06-22|59.99  
+3|10|2024-07-05|42.99  
+4|5|2024-06-10|144.97  
+5|6|2024-06-15|109.98  
+6|7|2024-06-20|1299.99  
+7|9|2024-07-01|164.97  
+
+**NOTE:** This is the window function, a window function performs a calculation across a set of rows related to the current row, without grouping the data into a single summary result.
+
+————————————————————————————————————————————
+
+- What is total revenue by product category?
+
+To demo CTE, I might made everything way too complicated...  
+
+```sql
+WITH product_revenue AS ( -- This starts a CTE named product_revenue, which is a temporary result that can be used later
+  SELECT 
+    p.product_id, 
+    SUM(oi.quantity * oi.unit_price) AS revenue
+  FROM order_items oi
+  JOIN products p ON p.product_id = oi.product_id
+  GROUP BY p.product_id
+) -- This is the end of CTE
+SELECT -- Real query starts here
+  c.category_name, 
+  SUM(pr.revenue) AS category_revenue
+FROM product_revenue pr -- This is the CTE we just created
+JOIN products p   ON p.product_id = pr.product_id
+JOIN categories c ON c.category_id = p.category_id
+GROUP BY c.category_name
+ORDER BY category_revenue DESC;
+```
+
+Electronics|2812.92  
+Sports|279.94  
+Books|129.99  
+Clothing|119.96  
+Home & Garden|42.99  
+
+————————————————————————————————————————————
+
+4. **More...more advanced SQL**
+
+The first thing I found interesting is this: ```strftime```, a function that formats a date into a string. (Note that DATE data type provide format as YYYY-MM-DD)
+
+For example, I want to see how many orders are placed within a month, I can run:
+
+```sql
+SELECT 
+  strftime('%Y-%m', order_date) AS year_month,
+  COUNT(*) AS orders_in_month
+FROM orders
+GROUP BY year_month
+ORDER BY year_month;
+```
+
+2024-05|2  
+2024-06|6  
+2024-07|2  
+
+I can easily do that with this function!
+
+strftime can also be used to extract year('%Y'), month('%m'), day('%d'), even week('%w') if possible
+
+————————————————————————————————————————————
+
+```EXCEPT``` function:
+EXCEPT returns all rows from the first query that are not found in the second query.
+
+For example, if I want to know who registered but never ordered, I can use this function:
 
 
+```sql
+SELECT customer_id, first_name, last_name, email --lists all customers
+FROM customers
+EXCEPT
+SELECT c.customer_id, c.first_name, c.last_name, c.email --lists only customers who have placed an order
+FROM customers c
+INNER JOIN orders o ON c.customer_id = o.customer_id;
+```
+
+8|Maria|Garcia|mgarcia@email.com
+
+Turns out Maria has an account with us but bought nothing!
